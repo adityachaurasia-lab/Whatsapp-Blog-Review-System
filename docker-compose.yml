@@ -10,6 +10,8 @@ services:
       - ./.wwebjs_auth:/app/.wwebjs_auth
     env_file:
       - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
 
 # Optional: You can add n8n here if you want to run it together

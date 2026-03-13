@@ -116,40 +116,48 @@ Reply with:
     }
 });
 
-// Listen for WhatsApp replies
-client.on('message', async (msg) => {
-    const sender = msg.from.split('@')[0];
+// Listen for WhatsApp messages (using message_create to catch self-sent messages)
+client.on('message_create', async (msg) => {
+    // Ignore messages from groups or status updates
+    if (msg.from.includes('@g.us') || msg.isStatus) return;
 
-    // Only respond to the admin number
-    if (sender !== ADMIN_NUMBER) return;
-
+    const sender = (msg.from || '').split('@')[0];
+    const receiver = (msg.to || '').split('@')[0];
     const body = msg.body.trim().toUpperCase();
 
-    if (body === 'Y') {
-        if (!pendingBlog) {
-            return msg.reply('⚠️ No blog is currently pending review.');
+    // The message is relevant if:
+    // 1. It was sent BY the admin to the bot
+    // 2. OR it was sent BY the bot (on the phone) to itself/admin (if using same number)
+    const isFromAdmin = sender === ADMIN_NUMBER;
+    const isSentToAdmin = receiver === ADMIN_NUMBER;
+
+    // We only care about Y/N replies
+    if (body !== 'Y' && body !== 'N') return;
+
+    // Logic: If I (Admin) send 'Y' to the bot, or if I (Bot/Admin) send 'Y' in our shared chat
+    if (isFromAdmin || (msg.fromMe && isSentToAdmin)) {
+        if (body === 'Y') {
+            if (!pendingBlog) {
+                // Only reply if it was specifically an incoming message to avoid loops
+                if (!msg.fromMe) await msg.reply('⚠️ No blog is currently pending review.');
+                return;
+            }
+
+            try {
+                console.log(`🚀 Admin approved: "${pendingBlog.title}"`);
+                await axios.post(N8N_WEBHOOK_URL, pendingBlog);
+                await client.sendMessage(msg.from, '✅ *Blog approved and published successfully!*');
+                pendingBlog = null;
+            } catch (error) {
+                console.error('❌ Webhook Error:', error.message);
+                await client.sendMessage(msg.from, '❌ *Error:* Failed to notify n8n.');
+            }
+        } else if (body === 'N') {
+            if (!pendingBlog) return;
+            console.log(`❌ Admin rejected: "${pendingBlog.title}"`);
+            await client.sendMessage(msg.from, '❌ *Blog rejected.*');
+            pendingBlog = null;
         }
-
-        try {
-            console.log(`🚀 Admin approved publishing: "${pendingBlog.title}"`);
-
-            // Forward the full blogDetails JSON to n8n publish webhook
-            await axios.post(N8N_WEBHOOK_URL, pendingBlog);
-
-            await msg.reply('✅ *Blog approved and published successfully!*');
-            pendingBlog = null; // Clear state after processing
-        } catch (error) {
-            console.error('❌ Error calling n8n publish webhook:', error.message);
-            await msg.reply('❌ *Error:* Failed to notify n8n. Please check server logs.');
-        }
-    } else if (body === 'N') {
-        if (!pendingBlog) {
-            return msg.reply('⚠️ No blog is currently pending review.');
-        }
-
-        console.log(`❌ Admin rejected: "${pendingBlog.title}"`);
-        await msg.reply('❌ *Blog rejected.*');
-        pendingBlog = null; // Clear state
     }
 });
 

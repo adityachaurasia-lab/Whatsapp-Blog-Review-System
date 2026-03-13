@@ -101,8 +101,17 @@ The bot expects the following JSON structure via a `POST` request to `/send-blog
 ### Example n8n Setup
 1. Use an **HTTP Request** node in n8n.
 2. Set Method to **POST**.
-3. URL: `http://your-bot-ip:3000/send-blog`.
+3. **URL**: 
+   - If n8n is also in Docker: `http://host.docker.internal:3000/send-blog`
+   - If n8n is running natively: `http://localhost:3000/send-blog`
 4. Body Content: `blogDetails`.
+
+### Connecting to n8n from the Bot
+If your n8n is running in a separate Docker container on the same Windows machine, use the `host.docker.internal` hostname in your `.env` file:
+```env
+N8N_WEBHOOK_URL=http://host.docker.internal:5678/webhook/publish-blog
+```
+I've already added `extra_hosts` to the `docker-compose.yml` to support this.
 
 ---
 
