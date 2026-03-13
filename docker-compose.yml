@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  whatsapp-bot:
+    build: .
+    container_name: whatsapp-blog-bot
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - ./.wwebjs_auth:/app/.wwebjs_auth
+    env_file:
+      - .env
+    restart: unless-stopped
+
+# Optional: You can add n8n here if you want to run it together
+#  n8n:
+#    image: n8nio/n8n
+#    container_name: n8n-server
+#    ports:
+#      - "5678:5678"
+#    environment:
+#      - N8N_HOST=n8n
+#    volumes:
+#      - n8n_data:/home/node/.n8n
+
+# volumes:
+#  n8n_data:
