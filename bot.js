@@ -9,6 +9,15 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
+// Root route for connection testing
+app.get('/', (req, res) => {
+    res.status(200).json({
+        status: 'online',
+        message: 'WhatsApp Blog Bot API is running.',
+        endpoint: '/send-blog (POST)'
+    });
+});
+
 const PORT = process.env.PORT || 3000;
 const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL;
 const ADMIN_NUMBER = process.env.WHATSAPP_NUMBER; // Format: 919XXXXXXXXX
